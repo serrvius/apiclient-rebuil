@@ -1,0 +1,34 @@
+{
+  "name": "serrvius/apiclient",
+  "description": "API client",
+  "keywords": [
+    "serrvius",
+    "apiclient"
+  ],
+  "homepage": "https://github.com/serrvius/apiclient",
+  "license": "Apache-2.0",
+  "type": "library",
+  "authors": [
+    {
+      "name": "Sergiu B.",
+      "email": "serrvius@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-0": {
+      "API/": "src/"
+    },
+    "psr-4": {
+    }
+  },
+  "require": {
+    "php": ">=7.1",
+    "monolog/monolog": "^1.24",
+    "guzzlehttp/guzzle": "^6.3",
+    "guzzlehttp/psr7": "^1.5",
+    "psr/log": "^1.1",
+    "psr/cache": "^1.0",
+    "psr/http-message": "^1.0",
+    "guzzlehttp/promises": "^1.3"
+  }
+}
