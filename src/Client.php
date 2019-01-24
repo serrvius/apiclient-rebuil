@@ -39,6 +39,8 @@ class Client
                                         'application_name' => self::NAME,
                                         'base_path'        => '',
                                         'system_logs'      => true,
+                                        'retry'            => [],
+                                        'retry_map'        => null,
                                     ], $config);
     }
 
@@ -235,24 +237,16 @@ class Client
      */
     public function execute(RequestInterface $request, $expectedClass = null)
     {
-        $request = $request->withHeader(
-            'User-Agent',
-            $this->config['application_name']
-//            . " " . self::USER_AGENT_SUFFIX
-//            . $this->getLibraryVersion()
+        $request = $request->withHeader('User-Agent', $this->config['application_name']
+        //            . " " . self::USER_AGENT_SUFFIX
+        //            . $this->getLibraryVersion()
         );
 
         // call the authorize method
         // this is where most of the grunt work is done
         $http = $this->authorize();
 
-        return REST::execute(
-            $http,
-            $request,
-            $expectedClass,
-            $this->config['retry'],
-            $this->config['retry_map']
-        );
+        return REST::execute($http, $request, $expectedClass, $this->config['retry'], $this->config['retry_map']);
     }
 
 }
