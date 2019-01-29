@@ -8,6 +8,7 @@
 
 namespace API;
 
+use API\Auth\AuthInterface;
 use API\Cache\MemoryCacheItemPool;
 use API\Http\REST;
 use GuzzleHttp\ClientInterface;
@@ -31,6 +32,8 @@ class Client
     protected $logger;
     /** @var ClientInterface */
     protected $http;
+    /** @var AuthInterface|null */
+    protected $authenticator = null;
 
     public function __construct(array $config)
     {
@@ -226,7 +229,30 @@ class Client
             $http = $this->getHttpClient();
         }
 
+        if ($this->getAuthenticator()) {
+            $this->authenticator->authorize($http);
+        }
+
         return $http;
+    }
+
+    /**
+     * @param AuthInterface $authenticator
+     * @return Client
+     */
+    public function setAuthenticator(AuthInterface $authenticator): self
+    {
+        $this->authenticator = $authenticator;
+
+        return $this;
+    }
+
+    /**
+     * @return AuthInterface|null
+     */
+    public function getAuthenticator(): ?AuthInterface
+    {
+        return $this->authenticator;
     }
 
     /**
