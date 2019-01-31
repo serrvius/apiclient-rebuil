@@ -9,16 +9,21 @@
 namespace API\Auth;
 
 use API\Auth\Middleware\JWTAuthMiddleware;
+use API\Cache\Item;
 use API\Exception\AuthException;
 use API\Http\Handler\HttpHandlerFactory;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Message\UriInterface;
+use Psr\Log\LoggerInterface;
 
 class JWTAuthorization implements AuthInterface
 {
 
+    protected $name          = 'JWT Authorization Library';
+    protected $cacheKey      = '_jwtToken';
     protected $configuration = [
         'login_uri'    => '/api/login_check',
         'method'       => 'POST',
@@ -27,33 +32,58 @@ class JWTAuthorization implements AuthInterface
         'cache_token'  => true,
         'token_prefix' => 'Bearer ',
     ];
-
+    /** @var string */
     protected $token;
-
     /** @var null|ClientInterface */
-    protected $client = null;
+    protected $http = null;
+    /** @var CacheItemPoolInterface */
+    protected $cache;
+    /** @var LoggerInterface */
+    protected $logger;
 
     public function __construct(array $configuration = [])
     {
         $this->configuration = array_merge($this->configuration, $configuration);
     }
 
-    public function authorize(ClientInterface $client = null)
+    public function authorize(ClientInterface $http = null): ClientInterface
     {
-        $this->client = $client;
+        $this->http = $http;
+
+        dump($this->getToken());
+
         if (!$this->hasToken()) {
-            $this->askToken();
+            $this->getAuthenticatedToken();
+            $this->storeToken();
         }
 
-        $config = $client->getConfig();
-        $config['handler']->push(new JWTAuthMiddleware($this->token));
+        $config = $http->getConfig();
+        $config['handler']->push(new JWTAuthMiddleware("{$this->configuration['token_prefix']}{$this->token}"));
 
         return new Client($config);
     }
 
-    protected function askToken()
+    public function getName(): string
     {
+        return $this->name;
+    }
 
+    public function setCache(CacheItemPoolInterface $cacheItemPool): AuthInterface
+    {
+        $this->cache = $cacheItemPool;
+
+        return $this;
+    }
+
+    public function setLogger(LoggerInterface $logger): AuthInterface
+    {
+        $this->logger = $logger;
+
+        return $this;
+    }
+
+    protected function getAuthenticatedToken()
+    {
         try {
             $httpHandler = HttpHandlerFactory::build();
             /** @var Psr7\Response $response */
@@ -74,6 +104,7 @@ class JWTAuthorization implements AuthInterface
 
                 return $this->token;
             }
+            throw new AuthException("Wrong auth process response code [{$response->getStatusCode()}]");
         } catch (\Exception $e) {
             throw new AuthException($e->getMessage());
         }
@@ -83,10 +114,11 @@ class JWTAuthorization implements AuthInterface
     protected function getCredentialRequest()
     {
         /** @var UriInterface $uriInterface */
-        $uriInterface = $this->client->getConfig('base_uri');
+        $uriInterface = $this->http->getConfig('base_uri');
 
         $url     = "{$uriInterface->getScheme()}://{$uriInterface->getHost()}{$this->configuration['login_uri']}";
         $headers = [
+            'User-Agent'    => $this->getName(),
             'Cache-Control' => 'no-store',
             'Content-Type'  => 'application/x-www-form-urlencoded',
         ];
@@ -98,8 +130,30 @@ class JWTAuthorization implements AuthInterface
 
     }
 
+    protected function storeToken()
+    {
+        if ($this->configuration['cache_token']) {
+            $item = new Item($this->cacheKey);
+            $item->set($this->token);
+            $item->expiresAfter(10);
+
+            $this->cache->save($item);
+        }
+    }
+
+    protected function getToken(){
+        if($this->token){
+            return $this->token;
+        }elseif ($this->cache->hasItem($this->cacheKey)){
+            $this->token = $this->cache->getItem($this->cacheKey)->get();
+        }
+
+        return $this->token;
+    }
+
     protected function hasToken()
     {
+
         return $this->token != null;
     }
 

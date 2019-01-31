@@ -22,7 +22,7 @@ use Psr\Log\LoggerInterface;
 class Client
 {
 
-    const NAME = 'api-client';
+    const NAME = 'API Client';
 
     /** @var array */
     protected $config = [];
@@ -38,7 +38,6 @@ class Client
     public function __construct(array $config)
     {
         $this->config = array_merge([
-
                                         'application_name' => self::NAME,
                                         'base_path'        => '',
                                         'system_logs'      => true,
@@ -230,7 +229,7 @@ class Client
         }
 
         if ($this->getAuthenticator()) {
-            $this->authenticator->authorize($http);
+            $http = $this->authenticator->authorize($http);
         }
 
         return $http;
@@ -243,6 +242,8 @@ class Client
     public function setAuthenticator(AuthInterface $authenticator): self
     {
         $this->authenticator = $authenticator;
+        $this->authenticator->setCache($this->getCache());
+        $this->authenticator->setLogger($this->getLogger());
 
         return $this;
     }
@@ -263,10 +264,7 @@ class Client
      */
     public function execute(RequestInterface $request, $expectedClass = null)
     {
-        $request = $request->withHeader('User-Agent', $this->config['application_name']
-        //            . " " . self::USER_AGENT_SUFFIX
-        //            . $this->getLibraryVersion()
-        );
+        $request = $request->withHeader('User-Agent', $this->config['application_name']);
 
         // call the authorize method
         // this is where most of the grunt work is done

@@ -17,7 +17,8 @@
 
 namespace API;
 
-use API\Exception\APIException;/**
+use API\Exception\APIException;
+/**
  * This class defines attributes, valid values, and usage which is generated
  * from a given json schema.
  * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5
@@ -25,7 +26,7 @@ use API\Exception\APIException;/**
 class Model implements \ArrayAccess
 {
   /**
-   * If you need to specify a NULL JSON value, use AcordTravel_Model::NULL_VALUE
+   * If you need to specify a NULL JSON value, use Model::NULL_VALUE
    * instead - it will be replaced when converting to JSON with a real null.
    */
   const NULL_VALUE = "{}gapi-php-null";

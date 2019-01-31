@@ -15,7 +15,7 @@ class JWTAuthMiddleware
 
     protected $token;
 
-    public function __construct($token)
+    public function __construct(string $token)
     {
         $this->token = $token;
     }
@@ -23,13 +23,7 @@ class JWTAuthMiddleware
     public function __invoke(callable $handler)
     {
         return function (RequestInterface $request, array $options) use ($handler) {
-            // Requests using "auth"="google_auth" will be authorized.
-//            if (!isset($options['auth']) || $options['auth'] !== 'google_auth') {
-//                return $handler($request, $options);
-//            }
-
-            $request = $request->withHeader('authorization', 'Bearer ' . $this->token);
-
+            $request = $request->withHeader('Authorization', $this->token);
             return $handler($request, $options);
         };
     }
